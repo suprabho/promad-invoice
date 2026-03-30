@@ -148,8 +148,8 @@ export default function InvoiceCanvas({ invoice }) {
               <span className="font-bold">{item.sl}.</span>
               <span className="font-medium">{item.description}</span>
               <span className="text-right font-bold">{item.quantity}</span>
-              <span className="text-right">{cur.code} {formatCurrency(item.price)} / {item.unit}</span>
-              <span className="text-right">{cur.code} {formatCurrency(item.total)}</span>
+              <span className="text-right">{cur.symbol} {formatCurrency(item.price)} / {item.unit}</span>
+              <span className="text-right">{cur.symbol} {formatCurrency(item.total)}</span>
             </div>
           ))}
 

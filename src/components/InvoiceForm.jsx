@@ -104,7 +104,11 @@ export default function InvoiceForm({ invoiceList = [], clients = [], editInvoic
   const removeItem = (index) => {
     setForm(prev => {
       const next = structuredClone(prev)
-      next.items.splice(index, 1)
+      if (next.items.length === 1) {
+        next.items[0] = { ...emptyItem(), sl: next.items[0].sl, unit: '' }
+      } else {
+        next.items.splice(index, 1)
+      }
       return recalc(next)
     })
   }
@@ -287,7 +291,7 @@ export default function InvoiceForm({ invoiceList = [], clients = [], editInvoic
         </h3>
 
         {/* Header row */}
-        <div className="grid grid-cols-[2rem_1fr_4.5rem_5.5rem_5.5rem_5.5rem_1.5rem] gap-2 mb-1 px-1">
+        <div className="grid grid-cols-[2rem_1fr_5.5rem_5.5rem_5.5rem_5.5rem] gap-2 mb-1">
           <span className="text-xs text-gray-400 font-medium">SL</span>
           <span className="text-xs text-gray-400 font-medium">Description</span>
           <span className="text-xs text-gray-400 font-medium">Qty</span>
@@ -299,7 +303,7 @@ export default function InvoiceForm({ invoiceList = [], clients = [], editInvoic
 
         <div className="space-y-2">
           {form.items.map((item, i) => (
-            <div key={i} className="grid grid-cols-[2rem_1fr_4.5rem_5.5rem_5.5rem_5.5rem_1.5rem] gap-2 items-center">
+            <div key={i} className="grid grid-cols-[2rem_1fr_5.5rem_5.5rem_5.5rem_5.5rem_1.5rem] gap-2 items-center">
               <div className="text-sm font-bold text-gray-400 text-center">{i + 1}</div>
               <input
                 type="text"
@@ -339,8 +343,7 @@ export default function InvoiceForm({ invoiceList = [], clients = [], editInvoic
               <button
                 type="button"
                 onClick={() => removeItem(i)}
-                disabled={form.items.length === 1}
-                className="flex justify-center text-gray-300 hover:text-red-400 disabled:opacity-20 transition-colors"
+                className="flex justify-center text-gray-300 hover:text-red-400 transition-colors"
               >
                 <Trash size={16} />
               </button>
