@@ -1,0 +1,28 @@
+{
+  "invoices": [
+    {
+      "id": "03260001",
+      "date": "2026-03-07",
+      "type": "domestic",
+      "lut": null,
+      "client": {
+        "name": "RAAL Manufacturing Pvt. Ltd.",
+        "address": "D2, Industrial Estate, Moula Ali, Hyderabad, Telangana - 500040",
+        "website": "https://www.themfgproject.com",
+        "gstin": "36AAOCR4091H1ZZ"
+      },
+      "items": [
+        {
+          "sl": 1,
+          "description": "Design Consultancy",
+          "pricePerHour": 3000,
+          "hours": 12,
+          "total": 36000
+        }
+      ],
+      "subtotal": 36000,
+      "igst": 6480,
+      "total": 42480
+    }
+  ]
+}
