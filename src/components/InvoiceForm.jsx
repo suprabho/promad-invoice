@@ -144,7 +144,7 @@ export default function InvoiceForm({ invoiceList = [], clients = [], editInvoic
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* ── Meta ── */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
         <div>
           <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
             Invoice ID (auto)
@@ -198,7 +198,7 @@ export default function InvoiceForm({ invoiceList = [], clients = [], editInvoic
       </div>
 
       {form.type === 'export' && (
-        <div className="max-w-xs">
+        <div className="w-full sm:max-w-xs">
           <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
             LUT #
           </label>
@@ -218,8 +218,8 @@ export default function InvoiceForm({ invoiceList = [], clients = [], editInvoic
         <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
           Client Details
         </h3>
-        <div className="grid grid-cols-2 gap-3">
-          <div className="col-span-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="sm:col-span-2">
             <select
               value={selectedClientId}
               onChange={e => {
@@ -248,7 +248,7 @@ export default function InvoiceForm({ invoiceList = [], clients = [], editInvoic
               ))}
             </select>
           </div>
-          <div className="col-span-2">
+          <div className="sm:col-span-2">
             <input
               type="text"
               placeholder="Client Name"
@@ -258,7 +258,7 @@ export default function InvoiceForm({ invoiceList = [], clients = [], editInvoic
               required
             />
           </div>
-          <div className="col-span-2">
+          <div className="sm:col-span-2">
             <textarea
               placeholder="Address"
               value={form.client.address}
@@ -290,8 +290,8 @@ export default function InvoiceForm({ invoiceList = [], clients = [], editInvoic
           Line Items
         </h3>
 
-        {/* Header row */}
-        <div className="grid grid-cols-[2rem_1fr_5.5rem_5.5rem_5.5rem_5.5rem] gap-2 mb-1">
+        {/* Header row — desktop only */}
+        <div className="hidden sm:grid grid-cols-[2rem_1fr_5.5rem_5.5rem_5.5rem_5.5rem_1.5rem] gap-2 mb-1">
           <span className="text-xs text-gray-400 font-medium">SL</span>
           <span className="text-xs text-gray-400 font-medium">Description</span>
           <span className="text-xs text-gray-400 font-medium">Qty</span>
@@ -301,18 +301,78 @@ export default function InvoiceForm({ invoiceList = [], clients = [], editInvoic
           <span />
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-3 sm:space-y-2">
           {form.items.map((item, i) => (
-            <div key={i} className="grid grid-cols-[2rem_1fr_5.5rem_5.5rem_5.5rem_5.5rem_1.5rem] gap-2 items-center">
-              <div className="text-sm font-bold text-gray-400 text-center">{i + 1}</div>
+            <div
+              key={i}
+              className="rounded-xl border border-gray-200 p-3 sm:p-0 sm:border-0 sm:rounded-none sm:grid sm:grid-cols-[2rem_1fr_5.5rem_5.5rem_5.5rem_5.5rem_1.5rem] sm:gap-2 sm:items-center"
+            >
+              {/* Mobile header row */}
+              <div className="flex items-center justify-between mb-2 sm:hidden">
+                <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                  Item {i + 1}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => removeItem(i)}
+                  className="text-gray-300 hover:text-red-400 transition-colors"
+                  aria-label="Remove item"
+                >
+                  <Trash size={16} />
+                </button>
+              </div>
+
+              {/* SL (desktop only) */}
+              <div className="hidden sm:block text-sm font-bold text-gray-400 text-center">{i + 1}</div>
+
+              {/* Description */}
               <input
                 type="text"
                 placeholder="Service description"
                 value={item.description}
                 onChange={e => setItemField(i, 'description', e.target.value)}
-                className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-yellow-300"
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-yellow-300 mb-2 sm:mb-0"
                 required
               />
+
+              {/* Mobile: 3-col grid for qty/price/unit */}
+              <div className="grid grid-cols-3 gap-2 mb-2 sm:hidden">
+                <div>
+                  <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Qty</label>
+                  <input
+                    type="number"
+                    placeholder="0"
+                    min="0"
+                    step="0.5"
+                    value={item.quantity || ''}
+                    onChange={e => setItemField(i, 'quantity', Number(e.target.value))}
+                    className="w-full px-2 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-yellow-300"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Price</label>
+                  <input
+                    type="number"
+                    placeholder="0"
+                    min="0"
+                    value={item.price || ''}
+                    onChange={e => setItemField(i, 'price', Number(e.target.value))}
+                    className="w-full px-2 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-yellow-300"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Unit</label>
+                  <input
+                    type="text"
+                    placeholder="hour"
+                    value={item.unit}
+                    onChange={e => setItemField(i, 'unit', e.target.value)}
+                    className="w-full px-2 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-yellow-300"
+                  />
+                </div>
+              </div>
+
+              {/* Desktop-only duplicate inputs (inside grid cells) */}
               <input
                 type="number"
                 placeholder="0"
@@ -320,7 +380,7 @@ export default function InvoiceForm({ invoiceList = [], clients = [], editInvoic
                 step="0.5"
                 value={item.quantity || ''}
                 onChange={e => setItemField(i, 'quantity', Number(e.target.value))}
-                className="px-2 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-yellow-300"
+                className="hidden sm:block px-2 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-yellow-300"
               />
               <input
                 type="number"
@@ -328,22 +388,33 @@ export default function InvoiceForm({ invoiceList = [], clients = [], editInvoic
                 min="0"
                 value={item.price || ''}
                 onChange={e => setItemField(i, 'price', Number(e.target.value))}
-                className="px-2 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-yellow-300"
+                className="hidden sm:block px-2 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-yellow-300"
               />
               <input
                 type="text"
                 placeholder="hour"
                 value={item.unit}
                 onChange={e => setItemField(i, 'unit', e.target.value)}
-                className="px-2 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-yellow-300"
+                className="hidden sm:block px-2 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-yellow-300"
               />
-              <div className="text-sm font-semibold text-right text-gray-700 pr-1">
+
+              {/* Mobile total row */}
+              <div className="flex justify-between items-center pt-2 border-t border-gray-100 sm:hidden">
+                <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Total</span>
+                <span className="text-sm font-semibold text-gray-800">
+                  {cur.symbol}{(item.total || 0).toLocaleString(cur.locale)}
+                </span>
+              </div>
+
+              {/* Desktop total + delete */}
+              <div className="hidden sm:block text-sm font-semibold text-right text-gray-700 pr-1">
                 {cur.symbol}{(item.total || 0).toLocaleString(cur.locale)}
               </div>
               <button
                 type="button"
                 onClick={() => removeItem(i)}
-                className="flex justify-center text-gray-300 hover:text-red-400 transition-colors"
+                className="hidden sm:flex justify-center text-gray-300 hover:text-red-400 transition-colors"
+                aria-label="Remove item"
               >
                 <Trash size={16} />
               </button>

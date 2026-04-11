@@ -12,6 +12,8 @@ import {
   UserPlus,
   PencilSimple,
   TrashSimple,
+  List,
+  X,
 } from '@phosphor-icons/react'
 import InvoiceCanvas from './components/InvoiceCanvas'
 import InvoiceForm from './components/InvoiceForm'
@@ -34,7 +36,26 @@ export default function App() {
   const [showClientDialog, setShowClientDialog] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [toast, setToast] = useState('')
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [previewScale, setPreviewScale] = useState(1)
   const scrollRef = useRef(null)
+  const previewWrapRef = useRef(null)
+
+  // Dynamically scale the 794px invoice canvas so it fits the viewport on mobile.
+  useEffect(() => {
+    if (mode !== 'preview') return
+    const el = previewWrapRef.current
+    if (!el) return
+    const update = () => {
+      const available = el.clientWidth
+      if (!available) return
+      setPreviewScale(Math.min(1, available / 794))
+    }
+    update()
+    const ro = new ResizeObserver(update)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [mode, selectedInvoice])
 
   const showToast = (msg) => {
     setToast(msg)
@@ -132,24 +153,65 @@ export default function App() {
     }
   }
 
+  const go = (next) => {
+    setMode(next)
+    setSidebarOpen(false)
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50 flex" style={{ fontFamily: 'Manrope, sans-serif' }}>
+    <div className="min-h-screen bg-gray-50 md:flex" style={{ fontFamily: 'Manrope, sans-serif' }}>
+      {/* ── Mobile top bar ── */}
+      <header className="md:hidden sticky top-0 z-30 flex items-center justify-between bg-white border-b border-gray-100 px-4 h-14">
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-full bg-[#EDEA00] flex items-center justify-center">
+            <Receipt size={14} weight="bold" className="text-gray-900" />
+          </div>
+          <span className="font-bold text-sm tracking-tight text-gray-900">PROMAD Invoices</span>
+        </div>
+        <button
+          onClick={() => setSidebarOpen(true)}
+          className="p-2 -mr-2 text-gray-700 hover:bg-gray-50 rounded-lg"
+          aria-label="Open menu"
+        >
+          <List size={22} />
+        </button>
+      </header>
+
+      {/* ── Mobile drawer backdrop ── */}
+      {sidebarOpen && (
+        <div
+          className="md:hidden fixed inset-0 bg-black/40 z-40"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* ── Sidebar ── */}
-      <aside className="w-64 bg-white border-r border-gray-100 flex flex-col min-h-screen">
+      <aside
+        className={`fixed md:static inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-100 flex flex-col min-h-screen transform transition-transform duration-200 ease-out ${
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        } md:translate-x-0`}
+      >
         {/* Brand */}
-        <div className="px-5 py-5 border-b border-gray-100">
+        <div className="px-5 py-5 border-b border-gray-100 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-full bg-[#EDEA00] flex items-center justify-center">
               <Receipt size={14} weight="bold" className="text-gray-900" />
             </div>
             <span className="font-bold text-sm tracking-tight text-gray-900">PROMAD Invoices</span>
           </div>
+          <button
+            onClick={() => setSidebarOpen(false)}
+            className="md:hidden p-1 text-gray-400 hover:text-gray-700"
+            aria-label="Close menu"
+          >
+            <X size={18} />
+          </button>
         </div>
 
         {/* Nav */}
         <div className="px-3 py-4 space-y-1">
           <button
-            onClick={() => { setEditingInvoice(null); setMode('create') }}
+            onClick={() => { setEditingInvoice(null); go('create') }}
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
               mode === 'create'
                 ? 'bg-[#EDEA00] text-gray-900'
@@ -160,7 +222,7 @@ export default function App() {
             New Invoice
           </button>
           <button
-            onClick={() => setMode('load')}
+            onClick={() => go('load')}
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
               mode === 'load'
                 ? 'bg-[#EDEA00] text-gray-900'
@@ -171,7 +233,7 @@ export default function App() {
             Load Invoice
           </button>
           <button
-            onClick={() => setShowClientDialog(true)}
+            onClick={() => { setShowClientDialog(true); setSidebarOpen(false) }}
             className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
           >
             <UserPlus size={17} />
@@ -193,7 +255,7 @@ export default function App() {
               {[...invoiceList].reverse().map(inv => (
                 <button
                   key={inv.id}
-                  onClick={() => handleSelectInvoice(inv.id)}
+                  onClick={() => { handleSelectInvoice(inv.id); setSidebarOpen(false) }}
                   className={`w-full text-left px-3 py-2.5 rounded-xl transition-colors ${
                     selectedInvoice?.id === inv.id
                       ? 'bg-gray-900 text-white'
@@ -213,7 +275,7 @@ export default function App() {
       </aside>
 
       {/* ── Main content ── */}
-      <main ref={scrollRef} className="flex-1 overflow-y-auto">
+      <main ref={scrollRef} className="flex-1 overflow-y-auto min-w-0">
         {/* Home / empty state */}
         {mode === 'home' && (
           <div className="flex flex-col items-center justify-center h-full min-h-screen text-center px-8">
@@ -229,9 +291,9 @@ export default function App() {
 
         {/* Load mode */}
         {mode === 'load' && (
-          <div className="max-w-2xl mx-auto px-8 py-10">
+          <div className="max-w-2xl mx-auto px-4 sm:px-8 py-8 sm:py-10">
             <h2 className="text-xl font-bold text-gray-900 mb-1">Load Invoice</h2>
-            <p className="text-sm text-gray-500 mb-6">Select an invoice from the sidebar to preview it.</p>
+            <p className="text-sm text-gray-500 mb-6">Select an invoice below to preview it.</p>
             {loadingInvoice && (
               <div className="flex items-center gap-2 text-sm text-gray-500">
                 <Spinner size={16} className="animate-spin" />
@@ -277,7 +339,7 @@ export default function App() {
 
         {/* Create / Edit mode */}
         {mode === 'create' && (
-          <div className="max-w-2xl mx-auto px-8 py-10">
+          <div className="max-w-2xl mx-auto px-4 sm:px-8 py-8 sm:py-10">
             <h2 className="text-xl font-bold text-gray-900 mb-1">
               {editingInvoice ? `Edit Invoice #${editingInvoice.id}` : 'New Invoice'}
             </h2>
@@ -307,44 +369,44 @@ export default function App() {
 
         {/* Preview mode */}
         {mode === 'preview' && selectedInvoice && (
-          <div className="px-8 py-8">
+          <div className="px-4 sm:px-8 py-6 sm:py-8">
             {/* Toolbar */}
-            <div className="flex items-center justify-between mb-6 max-w-4xl">
-              <div className="flex items-center gap-3">
+            <div className="flex flex-col gap-3 mb-5 max-w-4xl sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:mb-6">
+              <div className="flex items-center gap-3 min-w-0">
                 <button
                   onClick={() => setMode('load')}
-                  className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 transition-colors"
+                  className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 transition-colors shrink-0"
                 >
                   <ArrowLeft size={16} />
                   Back
                 </button>
-                <div className="h-4 w-px bg-gray-200" />
-                <div>
+                <div className="h-4 w-px bg-gray-200 shrink-0" />
+                <div className="min-w-0">
                   <span className="text-sm font-mono font-bold text-gray-900">#{selectedInvoice.id}</span>
-                  <span className="text-sm text-gray-400 ml-2">{selectedInvoice.client.name}</span>
+                  <span className="text-sm text-gray-400 ml-2 truncate">{selectedInvoice.client.name}</span>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <button
                   onClick={handleEdit}
-                  className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                  className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
                 >
                   <PencilSimple size={15} />
                   Edit
                 </button>
                 <button
                   onClick={() => setShowDeleteConfirm(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-white border border-red-200 rounded-xl text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
+                  className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-white border border-red-200 rounded-xl text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
                 >
                   <TrashSimple size={15} />
                   Delete
                 </button>
-                <div className="h-4 w-px bg-gray-200" />
+                <div className="hidden sm:block h-4 w-px bg-gray-200" />
                 <button
                   onClick={() => handleExport('jpg')}
                   disabled={!!exporting}
-                  className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-60"
+                  className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-60"
                 >
                   {exporting === 'jpg' ? <Spinner size={15} className="animate-spin" /> : <FileJpg size={15} />}
                   JPEG
@@ -352,20 +414,34 @@ export default function App() {
                 <button
                   onClick={() => handleExport('pdf')}
                   disabled={!!exporting}
-                  className="flex items-center gap-2 px-4 py-2 bg-[#EDEA00] hover:bg-yellow-300 rounded-xl text-sm font-semibold text-gray-900 transition-colors disabled:opacity-60"
+                  className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-[#EDEA00] hover:bg-yellow-300 rounded-xl text-sm font-semibold text-gray-900 transition-colors disabled:opacity-60"
                 >
                   {exporting === 'pdf' ? <Spinner size={15} className="animate-spin" /> : <FilePdf size={15} />}
-                  Download PDF
+                  <span className="hidden sm:inline">Download PDF</span>
+                  <span className="sm:hidden">PDF</span>
                 </button>
               </div>
             </div>
 
-            {/* Invoice canvas wrapper */}
-            <div
-              className="rounded-2xl overflow-hidden shadow-xl inline-block"
-              style={{ maxWidth: '794px' }}
-            >
-              <InvoiceCanvas invoice={selectedInvoice} />
+            {/* Invoice canvas wrapper — scales to fit viewport on small screens */}
+            <div ref={previewWrapRef} className="w-full max-w-[794px]">
+              <div
+                className="rounded-2xl overflow-hidden shadow-xl"
+                style={{
+                  width: 794 * previewScale,
+                  height: 1123 * previewScale,
+                }}
+              >
+                <div
+                  style={{
+                    width: 794,
+                    transform: `scale(${previewScale})`,
+                    transformOrigin: 'top left',
+                  }}
+                >
+                  <InvoiceCanvas invoice={selectedInvoice} />
+                </div>
+              </div>
             </div>
           </div>
         )}
