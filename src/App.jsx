@@ -10,6 +10,7 @@ import {
   Receipt,
   Spinner,
   UserPlus,
+  Buildings,
   PencilSimple,
   TrashSimple,
   List,
@@ -18,7 +19,8 @@ import {
 import InvoiceCanvas from './components/InvoiceCanvas'
 import InvoiceForm from './components/InvoiceForm'
 import ClientDialog from './components/ClientDialog'
-import { fetchInvoiceList, fetchInvoice, createInvoice, updateInvoice, deleteInvoice, fetchClients } from './utils/api'
+import EntityDialog from './components/EntityDialog'
+import { fetchInvoiceList, fetchInvoice, createInvoice, updateInvoice, deleteInvoice, fetchClients, fetchEntities } from './utils/api'
 import { downloadAsJpeg, downloadAsPdf } from './utils/exportInvoice'
 import { formatCurrency } from './utils/invoiceNumber'
 
@@ -32,8 +34,10 @@ export default function App() {
   const [loadingInvoice, setLoadingInvoice] = useState(false)
   const [exporting, setExporting] = useState(null) // 'pdf' | 'jpg' | null
   const [clients, setClients] = useState([])
+  const [entities, setEntities] = useState([])
   const [editingInvoice, setEditingInvoice] = useState(null)
   const [showClientDialog, setShowClientDialog] = useState(false)
+  const [showEntityDialog, setShowEntityDialog] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [toast, setToast] = useState('')
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -81,9 +85,17 @@ export default function App() {
     } catch { /* silent */ }
   }
 
+  const loadEntities = async () => {
+    try {
+      const list = await fetchEntities()
+      setEntities(list)
+    } catch { /* silent */ }
+  }
+
   useEffect(() => {
     loadList()
     loadClients()
+    loadEntities()
   }, [])
 
   const handleSelectInvoice = async (id) => {
@@ -239,6 +251,13 @@ export default function App() {
             <UserPlus size={17} />
             Add Client
           </button>
+          <button
+            onClick={() => { setShowEntityDialog(true); setSidebarOpen(false) }}
+            className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+          >
+            <Buildings size={17} />
+            Add Entity
+          </button>
         </div>
 
         {/* Invoice list */}
@@ -352,6 +371,7 @@ export default function App() {
               key={editingInvoice?.id || 'new'}
               invoiceList={invoiceList}
               clients={clients}
+              entities={entities}
               editInvoice={editingInvoice}
               onSave={editingInvoice ? handleUpdate : handleCreate}
               onCancel={() => {
@@ -480,6 +500,17 @@ export default function App() {
           onCreated={(c) => {
             setClients(prev => [...prev, c].sort((a, b) => a.name.localeCompare(b.name)))
             showToast(`Client "${c.name}" saved!`)
+          }}
+        />
+      )}
+
+      {/* Entity Dialog */}
+      {showEntityDialog && (
+        <EntityDialog
+          onClose={() => setShowEntityDialog(false)}
+          onCreated={(ent) => {
+            setEntities(prev => [...prev, ent].sort((a, b) => a.name.localeCompare(b.name)))
+            showToast(`Entity "${ent.name}" saved!`)
           }}
         />
       )}

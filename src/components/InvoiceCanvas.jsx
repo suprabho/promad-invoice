@@ -1,25 +1,36 @@
 import { formatInvoiceDate, formatCurrency } from '../utils/invoiceNumber'
+import { resolveEntity, DEFAULT_BRAND_COLOR } from '../utils/entities'
 
 const CURRENCIES = {
   INR: { symbol: '₹', code: 'INR' },
   USD: { symbol: '$', code: 'USD' },
 }
 
-// Fixed Promad payment details
-const PROMAD = {
-  name: 'PROMAD DESIGN',
-  accountNo: '50200103282761',
-  accountType: 'Current',
-  bank: 'HDFC',
-  ifsc: 'HDFC0008118',
-  gstin: '06ABGFP1006J1ZI',
-  pan: 'ABGFP1006J',
+// Renders the billing entity's brand mark in the top-right corner.
+// Entities flagged `logo: 'promad'` get the built-in PROMAD wordmark SVG;
+// every other entity falls back to a clean text wordmark of its name.
+function EntityLogo({ entity }) {
+  if (entity.logo !== 'promad') {
+    return (
+      <div className="flex flex-col items-end gap-0.5">
+        <span className="text-[26px] font-extrabold text-promad-dark tracking-[-0.5px] leading-none">
+          {entity.name}
+        </span>
+        {entity.pan && (
+          <span className="text-[11px] text-[#555] font-medium tracking-[0.3px]">
+            PAN: {entity.pan}
+          </span>
+        )}
+      </div>
+    )
+  }
+  return <PromadLogo pan={entity.pan} />
 }
 
 // Inline SVG so html2canvas renders the logo as DOM nodes.
 // Loading the logo as an <img src="...svg"> caused html2canvas to crop
 // most of the paths out (only the yellow "D" shape survived).
-function PromadLogo() {
+function PromadLogo({ pan }) {
   return (
     <div className="flex flex-col items-end gap-0.5">
       <svg
@@ -43,7 +54,7 @@ function PromadLogo() {
         <path d="M91.3541 33.0816H93.616C95.697 33.0816 97.3126 33.0816 97.8425 32.1816V53.1388H99.8717V53.6659H97.8425C96.7827 53.6659 94.8181 53.6659 93.784 54.0131V51.8788H93.7194C93.0086 53.1902 91.9616 54.0131 90.0229 54.0131C87.0889 54.0131 83.8188 51.5316 83.8188 47.4688C83.8188 43.7274 86.1454 40.4488 90.0746 40.4488C91.9228 40.4488 93.0473 41.2716 93.7194 42.6988H93.784V33.6088H91.3412V33.0816H91.3541ZM93.784 44.6788C93.784 43.0459 92.6079 41.1431 90.6045 41.1431C88.7304 41.1431 88.2263 42.7759 88.2263 44.7688V48.9731C88.2263 51.9559 88.963 53.2931 90.7208 53.2931C92.6596 53.2931 93.7711 51.4802 93.7711 49.7831V44.6659L93.784 44.6788Z" fill="#231F20"/>
       </svg>
       <span className="text-[11px] text-[#555] font-medium tracking-[0.3px]">
-        PAN: {PROMAD.pan}
+        PAN: {pan}
       </span>
     </div>
   )
@@ -67,6 +78,8 @@ export default function InvoiceCanvas({ invoice }) {
 
   const isDomestic = type === 'domestic'
   const cur = CURRENCIES[currency] || CURRENCIES.INR
+  const entity = resolveEntity(invoice)
+  const brand = entity.brandColor || DEFAULT_BRAND_COLOR
 
   return (
     <div
@@ -77,7 +90,10 @@ export default function InvoiceCanvas({ invoice }) {
       <div className="flex justify-between relative h-[180px] bg-white">
         {/* Yellow blob shape */}
 
-        <div className="absolute top-0 left-0 w-[520px] h-[180px] bg-promad-yellow rounded-br-[120px]">
+        <div
+          className="absolute top-0 left-0 w-[520px] h-[180px] rounded-br-[120px]"
+          style={{ backgroundColor: brand }}
+        >
           {/* ── INVOICE META ───────────────────────────────── */}
           <div className="pt-5 px-10">
             <div className="font-bold text-base text-promad-dark tracking-[0.5px]">
@@ -95,7 +111,7 @@ export default function InvoiceCanvas({ invoice }) {
 
         {/* Logo top-right */}
         <div className="absolute top-7 right-10">
-          <PromadLogo />
+          <EntityLogo entity={entity} />
         </div>
 
       </div>
@@ -139,12 +155,12 @@ export default function InvoiceCanvas({ invoice }) {
               Payment Info:
             </div>
             <div className="text-xs text-[#333] leading-[1.8]">
-              <div>Name: {PROMAD.name}</div>
-              <div>A/C #: {PROMAD.accountNo}</div>
-              <div>A/C Type: {PROMAD.accountType}</div>
-              <div>Bank: {PROMAD.bank}</div>
-              <div>IFSC: {PROMAD.ifsc}</div>
-              <div>GSTIN: {PROMAD.gstin}</div>
+              <div>Name: {entity.name}</div>
+              {entity.accountNo && <div>A/C #: {entity.accountNo}</div>}
+              {entity.accountType && <div>A/C Type: {entity.accountType}</div>}
+              {entity.bank && <div>Bank: {entity.bank}</div>}
+              {entity.ifsc && <div>IFSC: {entity.ifsc}</div>}
+              {entity.gstin && <div>GSTIN: {entity.gstin}</div>}
             </div>
           </div>
         </div>
@@ -199,7 +215,10 @@ export default function InvoiceCanvas({ invoice }) {
           {/* ── FOOTER ─────────────────────────────────────── */}
           <div className="mt-32 w-full flex items-stretch min-h-[160px] -mx-10 -mb-10">
             {/* Grand total */}
-            <div className="flex-1 bg-promad-yellow flex items-end justify-end rounded-tl-[60px] p-10">
+            <div
+              className="flex-1 flex items-end justify-end rounded-tl-[60px] p-10"
+              style={{ backgroundColor: brand }}
+            >
               <span className="text-[4rem] font-regular text-promad-dark tracking-[-1px]">
                 {cur.symbol}{formatCurrency(total)}/-
               </span>

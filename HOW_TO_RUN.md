@@ -26,3 +26,18 @@ The next April invoice will auto-generate as `04260001`, and so on.
 
 - **Domestic** — IGST 18% is calculated and shown
 - **Export** — No IGST; LUT # field appears instead
+
+## Billing entities
+
+Each invoice is billed *from* a **billing entity** (name, bank details, GSTIN,
+PAN, brand colour). PROMAD ships as a built-in default, so nothing needs setup.
+
+- Pick the entity from the **Billing Entity** dropdown when creating an invoice.
+- Add more via **Add Entity** in the sidebar. New entities render their name as
+  a text wordmark in the brand colour; PROMAD keeps its logo.
+- Each invoice stores a snapshot of its entity, so older invoices keep their
+  original billing details even if an entity is later changed.
+
+To persist added entities, create the `entities` table in Supabase using
+`supabase/entities.sql`. Without it the app still runs with the built-in
+PROMAD entity.

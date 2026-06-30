@@ -38,7 +38,7 @@ function recalc(form) {
   return { ...form, items, subtotal, igst: isDomestic ? igst : null, total }
 }
 
-export default function InvoiceForm({ invoiceList = [], clients = [], editInvoice, onSave, onCancel, onClientCreated }) {
+export default function InvoiceForm({ invoiceList = [], clients = [], entities = [], editInvoice, onSave, onCancel, onClientCreated }) {
   const isEditing = !!editInvoice
 
   const [form, setForm] = useState(() => {
@@ -65,6 +65,16 @@ export default function InvoiceForm({ invoiceList = [], clients = [], editInvoic
     }
     return ''
   })
+  const [selectedEntityId, setSelectedEntityId] = useState(() => editInvoice?.entity?.id || '')
+
+  // Default the billing entity to the first available once entities load
+  // (and keep a valid selection if the chosen entity disappears).
+  useEffect(() => {
+    if (!entities.length) return
+    if (!entities.some(e => e.id === selectedEntityId)) {
+      setSelectedEntityId(entities[0].id)
+    }
+  }, [entities, selectedEntityId])
 
   // Auto-generate invoice ID whenever date or invoiceList changes (only for new invoices)
   useEffect(() => {
@@ -128,7 +138,8 @@ export default function InvoiceForm({ invoiceList = [], clients = [], editInvoic
         const saved = await createClient({ name, address, website, gstin })
         if (onClientCreated) onClientCreated(saved)
       }
-      const payload = recalc({ ...form, id: generatedId })
+      const entity = entities.find(e => e.id === selectedEntityId) || entities[0] || null
+      const payload = recalc({ ...form, id: generatedId, entity })
       if (!payload.lut) payload.lut = null
       await onSave(payload)
     } catch (err) {
@@ -143,6 +154,25 @@ export default function InvoiceForm({ invoiceList = [], clients = [], editInvoic
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {/* ── Billing entity ── */}
+      <div>
+        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
+          Billing Entity
+        </label>
+        <select
+          value={selectedEntityId}
+          onChange={e => setSelectedEntityId(e.target.value)}
+          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-yellow-300 bg-white"
+        >
+          {entities.map(ent => (
+            <option key={ent.id} value={ent.id}>{ent.name}</option>
+          ))}
+        </select>
+        <p className="text-xs text-gray-400 mt-1">
+          The organisation / individual this invoice is billed from.
+        </p>
+      </div>
+
       {/* ── Meta ── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
         <div>
