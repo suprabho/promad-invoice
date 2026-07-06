@@ -76,8 +76,14 @@ create table if not exists invoicing.entities (
   "ifsc"        text,
   "gstin"       text,
   "pan"         text,
+  "hasGst"      boolean not null default true, -- GST-registered? false → issues Non-GST invoices
   created_at    timestamptz default now()
 );
+
+-- Backfill the GST flag on entities tables created before it existed. Defaults
+-- to true so existing rows keep billing Domestic/Export as before.
+alter table if exists invoicing.entities
+  add column if not exists "hasGst" boolean not null default true;
 
 alter table invoicing.entities enable row level security;
 

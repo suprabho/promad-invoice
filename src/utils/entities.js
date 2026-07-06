@@ -27,6 +27,7 @@ export const DEFAULT_ENTITIES = [
     ifsc: 'HDFC0008118',
     gstin: '06ABGFP1006J1ZI',
     pan: 'ABGFP1006J',
+    hasGst: true, // GST-registered → issues Domestic / Export invoices
   },
 ]
 
@@ -36,4 +37,18 @@ export const DEFAULT_ENTITIES = [
  */
 export function resolveEntity(invoice) {
   return invoice?.entity || DEFAULT_ENTITIES[0]
+}
+
+/**
+ * Whether a billing entity is registered for GST.
+ *
+ * Drives which invoice types the entity can issue (see typesForEntity in
+ * invoiceTypes.js): GST-registered entities bill Domestic (IGST) or Export
+ * (LUT); non-GST entities bill a plain Non-GST invoice with neither.
+ *
+ * Defaults to `true` when the flag is absent so entities created before this
+ * field existed — and the built-in PROMAD default — keep their behaviour.
+ */
+export function entityHasGst(entity) {
+  return entity?.hasGst !== false
 }

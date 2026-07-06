@@ -26,15 +26,24 @@ The next April invoice will auto-generate as `04260001`, and so on.
 
 - **Domestic** — IGST 18% is calculated and shown
 - **Export** — No IGST; LUT # field appears instead
+- **Non-GST** — No IGST *and* no LUT; the total equals the subtotal
+
+Which types are available depends on the billing entity's **GST registration**
+(see below): GST-registered entities issue *Domestic* or *Export* invoices,
+while non-GST entities issue *Non-GST* invoices only.
 
 ## Billing entities
 
 Each invoice is billed *from* a **billing entity** (name, bank details, GSTIN,
-PAN, brand colour). PROMAD ships as a built-in default, so nothing needs setup.
+PAN, brand colour, GST registration). PROMAD ships as a built-in default, so
+nothing needs setup.
 
 - Pick the entity from the **Billing Entity** dropdown when creating an invoice.
 - Add more via **Add Entity** in the sidebar. New entities render their name as
   a text wordmark in the brand colour; PROMAD keeps its logo.
+- Toggle **GST registered** when adding an entity. Registered entities bill
+  Domestic (IGST) / Export (LUT); unregistered entities bill Non-GST invoices
+  with neither, and their GSTIN field is hidden. Defaults to on.
 - Each invoice stores a snapshot of its entity, so older invoices keep their
   original billing details even if an entity is later changed.
 
