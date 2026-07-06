@@ -101,7 +101,24 @@ create policy "entities are insertable" on invoicing.entities for insert with ch
 alter table if exists invoicing.invoices
   add column if not exists entity jsonb;
 
--- 6. Backfill grants for the moved tables + refresh the API schema cache -----
+-- 6. Allow the Non-GST invoice type ------------------------------------------
+-- The invoices table predates the Non-GST feature, so its `type` CHECK
+-- constraint only permitted the two original types ('domestic', 'export').
+-- Saving a Non-GST invoice (issued by non-GST-registered entities) therefore
+-- failed with:
+--   new row for relation "invoices" violates check constraint "invoices_type_check"
+-- Drop the stale constraint and recreate it covering all three types the app
+-- can now issue. Existing rows are already within this set, so validation
+-- passes. Drop-then-add keeps this idempotent and safe to re-run. No-ops if
+-- invoices was not present to be moved in step 3.
+alter table if exists invoicing.invoices
+  drop constraint if exists invoices_type_check;
+
+alter table if exists invoicing.invoices
+  add constraint invoices_type_check
+  check (type in ('domestic', 'export', 'non_gst'));
+
+-- 7. Backfill grants for the moved tables + refresh the API schema cache -----
 grant all on all tables    in schema invoicing to anon, authenticated, service_role;
 grant all on all sequences in schema invoicing to anon, authenticated, service_role;
 
