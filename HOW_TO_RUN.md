@@ -39,10 +39,25 @@ PAN, brand colour). PROMAD ships as a built-in default, so nothing needs setup.
   original billing details even if an entity is later changed.
 
 Each invoice stores its entity snapshot in an `entity` column on the
-`invoices` table. Run `supabase/invoices-entity.sql` once in the Supabase SQL
-editor to add it — without it, saving an invoice fails with *"Could not find
-the 'entity' column of 'invoices' in the schema cache."*
+`invoices` table (see the database setup below).
 
-To persist added entities, also create the `entities` table in Supabase using
-`supabase/entities.sql`. Without it the app still runs with the built-in
-PROMAD entity.
+## Database (Supabase)
+
+This app shares its Supabase project (one database) with **Footshorts** (the
+`vismay` repo). To keep the two apps' tables from colliding — both otherwise
+define a `public.entities` table, with incompatible shapes — all of promad's
+tables live in a dedicated **`invoicing`** Postgres schema.
+
+**Setup (run once):**
+
+1. In the Supabase **SQL editor**, paste and run
+   [`supabase/invoicing-schema.sql`](supabase/invoicing-schema.sql). It creates
+   the `invoicing` schema, moves the existing `invoices`/`clients` tables into
+   it (preserving all data), creates the billing `entities` table, and ensures
+   the per-invoice `entity` snapshot column. It's idempotent — safe to re-run.
+2. In **Project Settings → API → "Exposed schemas"**, add `invoicing` and save.
+   This is required for the API to see the schema; without it requests fail with
+   *"PGRST106 — The schema must be one of the following: public, graphql_public."*
+
+The Supabase client is pointed at this schema in `src/utils/supabase.js`
+(`db: { schema: 'invoicing' }`), so all queries resolve to `invoicing.*`.
