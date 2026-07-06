@@ -16,11 +16,17 @@ export default function EntityDialog({ onClose, onCreated }) {
     gstin: '',
     pan: '',
     brandColor: DEFAULT_BRAND_COLOR,
+    hasGst: true,
   })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
   const set = (key, value) => setForm(f => ({ ...f, [key]: value }))
+
+  // Toggling GST off clears any GSTIN — a non-GST entity has none, and its
+  // invoices carry neither IGST nor an LUT.
+  const toggleGst = (value) =>
+    setForm(f => ({ ...f, hasGst: value, gstin: value ? f.gstin : '' }))
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -68,6 +74,36 @@ export default function EntityDialog({ onClose, onCreated }) {
             />
           </div>
 
+          {/* GST registration — decides which invoice types this entity issues */}
+          <div className="rounded-lg border border-gray-200 p-3">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <div className="text-sm font-medium text-gray-800">GST registered</div>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  {form.hasGst
+                    ? 'Bills Domestic (IGST 18%) & Export (LUT) invoices.'
+                    : 'Bills Non-GST invoices — no IGST, no LUT.'}
+                </p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={form.hasGst}
+                aria-label="GST registered"
+                onClick={() => toggleGst(!form.hasGst)}
+                className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-yellow-300 ${
+                  form.hasGst ? 'bg-[#EDEA00]' : 'bg-gray-200'
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                    form.hasGst ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+            </div>
+          </div>
+
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className={labelCls}>Account #</label>
@@ -85,10 +121,12 @@ export default function EntityDialog({ onClose, onCreated }) {
               <label className={labelCls}>IFSC</label>
               <input type="text" value={form.ifsc} onChange={e => set('ifsc', e.target.value)} className={field} />
             </div>
-            <div>
-              <label className={labelCls}>GSTIN</label>
-              <input type="text" value={form.gstin} onChange={e => set('gstin', e.target.value)} className={field} />
-            </div>
+            {form.hasGst && (
+              <div>
+                <label className={labelCls}>GSTIN</label>
+                <input type="text" value={form.gstin} onChange={e => set('gstin', e.target.value)} className={field} />
+              </div>
+            )}
             <div>
               <label className={labelCls}>PAN</label>
               <input type="text" value={form.pan} onChange={e => set('pan', e.target.value)} className={field} />

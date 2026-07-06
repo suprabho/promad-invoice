@@ -6,8 +6,7 @@ import {
 } from '@phosphor-icons/react'
 import { generateInvoiceId, getTodayISO, getMonthYear } from '../utils/invoiceNumber'
 import { createClient } from '../utils/api'
-
-const IGST_RATE = 0.18
+import { IGST_RATE, typesForEntity, invoiceTypeMeta } from '../utils/invoiceTypes'
 
 const CURRENCIES = {
   INR: { symbol: '₹', locale: 'en-IN' },
@@ -67,6 +66,11 @@ export default function InvoiceForm({ invoiceList = [], clients = [], entities =
   })
   const [selectedEntityId, setSelectedEntityId] = useState(() => editInvoice?.entity?.id || '')
 
+  // The billing entity drives which invoice types are available: a GST entity
+  // issues Domestic/Export, a non-GST entity issues Non-GST only.
+  const selectedEntity = entities.find(e => e.id === selectedEntityId) || null
+  const availableTypes = typesForEntity(selectedEntity)
+
   // Default the billing entity to the first available once entities load
   // (and keep a valid selection if the chosen entity disappears).
   useEffect(() => {
@@ -75,6 +79,16 @@ export default function InvoiceForm({ invoiceList = [], clients = [], entities =
       setSelectedEntityId(entities[0].id)
     }
   }, [entities, selectedEntityId])
+
+  // Keep the invoice type valid for the chosen entity — e.g. switching to a
+  // non-GST entity forces Non-GST, switching back to a GST entity restores
+  // Domestic. recalc then drops/adds the IGST accordingly.
+  useEffect(() => {
+    const allowed = typesForEntity(selectedEntity)
+    if (!allowed.includes(form.type)) {
+      setField('type', allowed[0])
+    }
+  }, [selectedEntity, form.type])
 
   // Auto-generate invoice ID whenever date or invoiceList changes (only for new invoices)
   useEffect(() => {
@@ -128,7 +142,7 @@ export default function InvoiceForm({ invoiceList = [], clients = [], entities =
     setError('')
     if (!form.client.name.trim()) return setError('Client name is required.')
     if (form.items.some(it => !it.description.trim())) return setError('All line items need a description.')
-    if (!form.type === 'export' && !form.lut.trim()) return setError('LUT # is required for export invoices.')
+    if (form.type === 'export' && !form.lut.trim()) return setError('LUT # is required for export invoices.')
 
     setSaving(true)
     try {
@@ -170,6 +184,8 @@ export default function InvoiceForm({ invoiceList = [], clients = [], entities =
         </select>
         <p className="text-xs text-gray-400 mt-1">
           The organisation / individual this invoice is billed from.
+          {availableTypes.length === 1 && availableTypes[0] === 'non_gst' &&
+            ' Not GST-registered — invoices are Non-GST (no IGST, no LUT).'}
         </p>
       </div>
 
@@ -204,10 +220,12 @@ export default function InvoiceForm({ invoiceList = [], clients = [], entities =
           <select
             value={form.type}
             onChange={e => setField('type', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-yellow-300 bg-white"
+            disabled={availableTypes.length < 2}
+            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-yellow-300 bg-white disabled:bg-gray-50 disabled:text-gray-500"
           >
-            <option value="domestic">Domestic (IGST 18%)</option>
-            <option value="export">Export (LUT)</option>
+            {availableTypes.map(t => (
+              <option key={t} value={t}>{invoiceTypeMeta(t).label}</option>
+            ))}
           </select>
         </div>
 

@@ -23,6 +23,7 @@ import EntityDialog from './components/EntityDialog'
 import { fetchInvoiceList, fetchInvoice, createInvoice, updateInvoice, deleteInvoice, fetchClients, fetchEntities } from './utils/api'
 import { downloadAsJpeg, downloadAsPdf } from './utils/exportInvoice'
 import { formatCurrency } from './utils/invoiceNumber'
+import { invoiceTypeMeta } from './utils/invoiceTypes'
 
 const CANVAS_ID = 'invoice-canvas'
 
@@ -336,12 +337,8 @@ export default function App() {
                       <div className="text-sm font-mono font-bold text-gray-900">#{inv.id}</div>
                       <div className="text-sm text-gray-500 mt-0.5">{inv.clientName}</div>
                       <div className="text-xs mt-1">
-                        <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${
-                          inv.type === 'domestic'
-                            ? 'bg-blue-50 text-blue-600'
-                            : 'bg-green-50 text-green-600'
-                        }`}>
-                          {inv.type === 'domestic' ? 'Domestic' : 'Export'}
+                        <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${invoiceTypeMeta(inv.type).badgeClass}`}>
+                          {invoiceTypeMeta(inv.type).badge}
                         </span>
                       </div>
                     </div>

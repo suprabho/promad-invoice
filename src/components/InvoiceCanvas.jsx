@@ -76,7 +76,8 @@ export default function InvoiceCanvas({ invoice }) {
     total,
   } = invoice
 
-  const isDomestic = type === 'domestic'
+  const isDomestic = type === 'domestic' // IGST line
+  const isExport = type === 'export'     // LUT # line
   const cur = CURRENCIES[currency] || CURRENCIES.INR
   const entity = resolveEntity(invoice)
   const brand = entity.brandColor || DEFAULT_BRAND_COLOR
@@ -142,7 +143,7 @@ export default function InvoiceCanvas({ invoice }) {
                 GSTIN: {client.gstin}
               </div>
             )}
-            {!isDomestic && lut && (
+            {isExport && lut && (
               <div className="text-[11px] text-[#555] mt-1 font-semibold">
                 LUT #: {lut}
               </div>
@@ -204,7 +205,7 @@ export default function InvoiceCanvas({ invoice }) {
               </div>
             )}
 
-            {!isDomestic && lut && (
+            {isExport && lut && (
               <div className="flex justify-between py-2 text-[13px] text-[#444] border-b border-[#ddd] w-full">
                 <span className="font-semibold">LUT #</span>
                 <span className="text-xs">{lut}</span>
