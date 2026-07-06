@@ -38,6 +38,11 @@ PAN, brand colour). PROMAD ships as a built-in default, so nothing needs setup.
 - Each invoice stores a snapshot of its entity, so older invoices keep their
   original billing details even if an entity is later changed.
 
-To persist added entities, create the `entities` table in Supabase using
+Each invoice stores its entity snapshot in an `entity` column on the
+`invoices` table. Run `supabase/invoices-entity.sql` once in the Supabase SQL
+editor to add it — without it, saving an invoice fails with *"Could not find
+the 'entity' column of 'invoices' in the schema cache."*
+
+To persist added entities, also create the `entities` table in Supabase using
 `supabase/entities.sql`. Without it the app still runs with the built-in
 PROMAD entity.

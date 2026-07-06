@@ -5,6 +5,10 @@
 -- "Add Entity" dialog. Each invoice stores a snapshot of its entity, so the
 -- `entities` rows are only used to populate the picker and the dialog.
 --
+-- The per-invoice snapshot lives in an `entity` column on the `invoices`
+-- table — see `invoices-entity.sql`, which you must run for saving invoices
+-- to work at all (this table is optional; that migration is not).
+--
 -- Columns are quoted to preserve camelCase so they map 1:1 to the JS entity
 -- object keys the Supabase client inserts/selects (accountNo, brandColor, …).
 
