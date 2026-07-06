@@ -33,6 +33,19 @@ create table if not exists entities (
   created_at    timestamptz default now()
 );
 
+-- Heal a pre-existing table that predates any of these columns (notably
+-- "accountNo", which the "Add Entity" dialog always writes). Each statement
+-- is a no-op when the column is already present.
+alter table entities add column if not exists "logo"        text;
+alter table entities add column if not exists "brandColor"  text default '#EDEA00';
+alter table entities add column if not exists "accountNo"   text;
+alter table entities add column if not exists "accountType" text default 'Current';
+alter table entities add column if not exists "bank"        text;
+alter table entities add column if not exists "ifsc"        text;
+alter table entities add column if not exists "gstin"       text;
+alter table entities add column if not exists "pan"         text;
+alter table entities add column if not exists created_at    timestamptz default now();
+
 -- Match the clients table's access model (anon key + RLS as configured for
 -- this project). Adjust policies to suit your security requirements.
 -- Dropped-then-created so the whole file stays safe to re-run (plain
