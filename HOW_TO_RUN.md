@@ -45,7 +45,11 @@ the 'entity' column of 'invoices' in the schema cache."*
 
 To persist added entities, also create the `entities` table in Supabase using
 `supabase/entities.sql`. Without it the app still runs with the built-in
-PROMAD entity. If adding an entity fails with *"Could not find the 'accountNo'
-column of 'entities' in the schema cache"*, an older `entities` table is
-missing newer columns — re-run `supabase/entities.sql`. It's safe to re-run:
-it adds any missing columns and refreshes PostgREST's schema cache.
+PROMAD entity.
+
+If **Add Entity** fails with *"null value in column \"type\" of relation
+\"entities\" violates not-null constraint"*, your project has an older
+`entities` table with a stray `type` column that the app doesn't use (the
+`create table if not exists` in `entities.sql` won't overwrite it). Run
+`supabase/entities-type-fix.sql` once in the Supabase SQL editor to allow that
+column to be NULL — it's non-destructive and safe to re-run.
