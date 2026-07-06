@@ -62,8 +62,9 @@ tables live in a dedicated **`invoicing`** Postgres schema.
 1. In the Supabase **SQL editor**, paste and run
    [`supabase/invoicing-schema.sql`](supabase/invoicing-schema.sql). It creates
    the `invoicing` schema, moves the existing `invoices`/`clients` tables into
-   it (preserving all data), creates the billing `entities` table, and ensures
-   the per-invoice `entity` snapshot column. It's idempotent — safe to re-run.
+   it (preserving all data), creates the billing `entities` table, ensures the
+   per-invoice `entity` snapshot column, and allows the **Non-GST** invoice
+   type on the `invoices` table. It's idempotent — safe to re-run.
 2. In **Project Settings → API → "Exposed schemas"**, add `invoicing` and save.
    This is required for the API to see the schema; without it requests fail with
    *"PGRST106 — The schema must be one of the following: public, graphql_public."*
