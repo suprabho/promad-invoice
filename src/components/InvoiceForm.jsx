@@ -90,13 +90,16 @@ export default function InvoiceForm({ invoiceList = [], clients = [], entities =
     }
   }, [selectedEntity, form.type])
 
-  // Auto-generate invoice ID whenever date or invoiceList changes (only for new invoices)
+  // Auto-generate invoice ID whenever the date, billing entity or invoice list
+  // changes (only for new invoices). Each entity has its own series, so the ID
+  // depends on which entity is selected — not just the month.
   useEffect(() => {
     if (isEditing) return
     const { month, year } = getMonthYear(form.date)
-    const id = generateInvoiceId(month, year, invoiceList)
+    const entity = entities.find(e => e.id === selectedEntityId) || entities[0] || null
+    const id = generateInvoiceId(month, year, invoiceList, entity)
     setGeneratedId(id)
-  }, [form.date, invoiceList, isEditing])
+  }, [form.date, invoiceList, isEditing, selectedEntityId, entities])
 
   const setField = (path, value) => {
     setForm(prev => {

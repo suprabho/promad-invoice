@@ -69,6 +69,7 @@ create table if not exists invoicing.entities (
   id            text primary key default gen_random_uuid()::text,
   "name"        text not null,
   "logo"        text,                      -- 'promad' for the built-in SVG; null = text wordmark
+  "code"        text,                      -- prefix for this entity's own invoice series (e.g. 'PM' → PM04260000)
   "brandColor"  text default '#EDEA00',
   "accountNo"   text,
   "accountType" text default 'Current',
@@ -84,6 +85,13 @@ create table if not exists invoicing.entities (
 -- to true so existing rows keep billing Domestic/Export as before.
 alter table if exists invoicing.entities
   add column if not exists "hasGst" boolean not null default true;
+
+-- Backfill the invoice-series code on entities tables created before it
+-- existed. Each entity now numbers its OWN invoices (CCMMYYNNNN), so this code
+-- prefixes the ID to keep entities' series from colliding on the primary key.
+-- Nullable: the app derives a fallback code from the entity name when unset.
+alter table if exists invoicing.entities
+  add column if not exists "code" text;
 
 alter table invoicing.entities enable row level security;
 

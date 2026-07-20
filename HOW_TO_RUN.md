@@ -19,8 +19,12 @@ All invoices are stored in `data/invoices.json`. Includes the March 2026 invoice
 
 ## Invoice number format
 
-`MMYYNNNN` — e.g. `03260001` = first invoice of March 2026.
-The next April invoice will auto-generate as `04260001`, and so on.
+`CCMMYYNNNN` — entity code + month + 2-digit year + a 4-digit sequence.
+Each billing entity keeps its **own** series, and every entity's first bill of a
+month starts at `0000`. e.g. PROMAD (code `PM`) → `PM04260000` for its first
+April 2026 invoice, then `PM04260001`; a second entity issues its own
+`AB04260000` in parallel. An entity's code is set on the **Add Entity** form
+(or derived from its name if left blank).
 
 ## Invoice types
 
