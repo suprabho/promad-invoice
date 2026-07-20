@@ -20,6 +20,7 @@ export const DEFAULT_ENTITIES = [
     id: 'promad',
     name: 'PROMAD DESIGN',
     logo: 'promad', // renders the built-in PROMAD wordmark SVG
+    code: 'PM', // prefix for this entity's own invoice series (see entityCode)
     brandColor: DEFAULT_BRAND_COLOR,
     accountNo: '50200103282761',
     accountType: 'Current',
@@ -51,4 +52,26 @@ export function resolveEntity(invoice) {
  */
 export function entityHasGst(entity) {
   return entity?.hasGst !== false
+}
+
+/**
+ * Short code that prefixes an entity's invoice numbers so each entity keeps
+ * its own independent series (e.g. PROMAD → "PM" → invoice IDs like
+ * "PM04260000"). Without a per-entity prefix, two entities issuing their first
+ * bill of the same month would both produce "MMYY0000" and collide on the
+ * invoice ID (the primary key).
+ *
+ * Uses the entity's explicit `code` when set; otherwise falls back to the
+ * first alphanumerics of its name (then id) so legacy entities saved before
+ * this field existed still get a stable, distinct-ish series. Always returns a
+ * non-empty uppercase A–Z/0–9 string.
+ */
+export function entityCode(entity) {
+  const explicit = String(entity?.code || '').toUpperCase().replace(/[^A-Z0-9]/g, '')
+  if (explicit) return explicit
+  const derived = String(entity?.name || entity?.id || '')
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, '')
+    .slice(0, 3)
+  return derived || 'INV'
 }

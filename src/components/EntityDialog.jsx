@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { X, Spinner } from '@phosphor-icons/react'
 import { createEntity } from '../utils/api'
-import { DEFAULT_BRAND_COLOR } from '../utils/entities'
+import { DEFAULT_BRAND_COLOR, entityCode } from '../utils/entities'
 
 // Create a new billing entity — the "billed from" side of an invoice
 // (name, bank details, GSTIN, PAN and brand colour). New entities render
@@ -9,6 +9,7 @@ import { DEFAULT_BRAND_COLOR } from '../utils/entities'
 export default function EntityDialog({ onClose, onCreated }) {
   const [form, setForm] = useState({
     name: '',
+    code: '',
     accountNo: '',
     accountType: 'Current',
     bank: '',
@@ -34,7 +35,10 @@ export default function EntityDialog({ onClose, onCreated }) {
     setSaving(true)
     setError('')
     try {
-      const saved = await createEntity(form)
+      // Normalise the invoice code (uppercase A–Z/0–9); fall back to a code
+      // derived from the name so the entity always gets its own series.
+      const code = entityCode({ code: form.code, name: form.name })
+      const saved = await createEntity({ ...form, code })
       onCreated(saved)
       onClose()
     } catch (err) {
@@ -72,6 +76,22 @@ export default function EntityDialog({ onClose, onCreated }) {
               required
               autoFocus
             />
+          </div>
+
+          <div>
+            <label className={labelCls}>Invoice Code</label>
+            <input
+              type="text"
+              value={form.code}
+              onChange={e => set('code', e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
+              placeholder="e.g. AB"
+              maxLength={4}
+              className={field}
+            />
+            <p className="text-xs text-gray-400 mt-1">
+              Prefixes this entity's invoice numbers so it keeps its own series
+              (e.g. AB → AB04260000). Leave blank to derive one from the name.
+            </p>
           </div>
 
           {/* GST registration — decides which invoice types this entity issues */}
