@@ -75,3 +75,31 @@ export function entityCode(entity) {
     .slice(0, 3)
   return derived || 'INV'
 }
+
+/**
+ * The billing-entity code an invoice was issued under, resolvable from a
+ * *summary* row (id / date / total) without loading the full invoice.
+ *
+ * Prefers the invoice's own entity snapshot when present. Invoices saved
+ * before entities existed have no snapshot and a legacy all-numeric
+ * "MMYYNNNN" id, so they fall back to the built-in PROMAD default — which is
+ * exactly who issued them.
+ */
+export function invoiceEntityCode(invoice) {
+  if (invoice?.entity) return entityCode(invoice.entity)
+  const prefix = String(invoice?.id || '').match(/^[A-Za-z]+/)
+  if (prefix) return prefix[0].toUpperCase()
+  return entityCode(DEFAULT_ENTITIES[0])
+}
+
+/**
+ * Human-readable name for an invoice's billing entity, looked up in the known
+ * entities by code so filter chips can label themselves with the full name
+ * even when the invoice only carries a code. Falls back to the code itself for
+ * an entity that has since been removed.
+ */
+export function invoiceEntityName(invoice, entities = []) {
+  if (invoice?.entity?.name) return invoice.entity.name
+  const code = invoiceEntityCode(invoice)
+  return entities.find(e => entityCode(e) === code)?.name || code
+}
