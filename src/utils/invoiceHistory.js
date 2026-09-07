@@ -80,9 +80,15 @@ export function groupInvoicesByMonth(invoices, entityFilter = null) {
     .map(([key, list]) => ({
       key: key || 'undated',
       label: monthLabel(key),
-      // Ids are zero-padded and share a per-entity prefix, so descending string
-      // order puts the most recent invoice of the month first.
-      invoices: [...list].sort((a, b) => String(b.id).localeCompare(String(a.id))),
+      // Newest first. Sorting on the id would order by entity prefix before
+      // date (every VAN bill ahead of every PM one); ISO dates sort
+      // lexicographically, so comparing them directly is chronological. The id
+      // only breaks ties between invoices issued on the same day.
+      invoices: [...list].sort(
+        (a, b) =>
+          String(b.date || '').localeCompare(String(a.date || '')) ||
+          String(b.id).localeCompare(String(a.id))
+      ),
     }))
 }
 

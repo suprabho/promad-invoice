@@ -45,6 +45,7 @@ export default function App() {
   const [toast, setToast] = useState('')
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [entityFilter, setEntityFilter] = useState('all') // billing-entity code, or 'all'
+  const [collapsedMonths, setCollapsedMonths] = useState(() => new Set()) // month keys
   const [previewScale, setPreviewScale] = useState(1)
   const scrollRef = useRef(null)
   const previewWrapRef = useRef(null)
@@ -60,6 +61,15 @@ export default function App() {
     () => groupInvoicesByMonth(invoiceList, entityFilter),
     [invoiceList, entityFilter]
   )
+
+  const toggleMonth = (key) => {
+    setCollapsedMonths(prev => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }
 
   // Changing the filter swaps in a different set of months, so an inherited
   // scroll offset would drop the user into the middle of the new list.
@@ -337,13 +347,28 @@ export default function App() {
             ) : (
               monthGroups.map(group => (
                 <div key={group.key} className="mb-3">
-                  <div className="sticky top-0 z-10 -mx-3 px-4 py-2 bg-white flex items-center justify-between">
-                    <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">
-                      {group.label}
-                    </span>
-                    <span className="text-[11px] font-medium text-gray-300">{group.invoices.length}</span>
+                  <div className="sticky top-0 z-10 -mx-3 px-2 bg-white">
+                    <button
+                      onClick={() => toggleMonth(group.key)}
+                      aria-expanded={!collapsedMonths.has(group.key)}
+                      className="w-full flex items-center justify-between gap-2 px-2 py-1.5 rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                      <span className="flex items-center gap-1.5 min-w-0">
+                        <CaretDown
+                          size={11}
+                          weight="bold"
+                          className={`shrink-0 text-gray-400 transition-transform ${
+                            collapsedMonths.has(group.key) ? '-rotate-90' : ''
+                          }`}
+                        />
+                        <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 truncate">
+                          {group.label}
+                        </span>
+                      </span>
+                      <span className="text-[11px] font-medium text-gray-300">{group.invoices.length}</span>
+                    </button>
                   </div>
-                  <div className="space-y-1 mt-1">
+                  <div className={`space-y-1 mt-1 ${collapsedMonths.has(group.key) ? 'hidden' : ''}`}>
                     {group.invoices.map(inv => (
                       <button
                         key={inv.id}
