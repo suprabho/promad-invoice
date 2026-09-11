@@ -1,14 +1,24 @@
 import { supabase } from './supabase'
 import { DEFAULT_ENTITIES } from './entities'
 
+// Summary rows for the history list. The entity snapshot rides along so the
+// sidebar can group and filter by billing entity without loading full
+// invoices; databases created before that column existed fall back to a
+// select without it (the code is then derived from the invoice id).
 export async function fetchInvoiceList() {
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from('invoices')
-    .select('id, date, type, client, total')
+    .select('id, date, type, client, total, entity')
     .order('id')
+  if (error) {
+    ;({ data, error } = await supabase
+      .from('invoices')
+      .select('id, date, type, client, total')
+      .order('id'))
+  }
   if (error) throw new Error(error.message)
-  return data.map(({ id, date, type, client, total }) => ({
-    id, date, type, clientName: client.name, total,
+  return data.map(({ id, date, type, client, total, entity }) => ({
+    id, date, type, clientName: client.name, total, entity,
   }))
 }
 

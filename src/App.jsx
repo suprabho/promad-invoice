@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import {
   FolderOpen,
   FilePlus,
@@ -24,6 +24,8 @@ import { fetchInvoiceList, fetchInvoice, createInvoice, updateInvoice, deleteInv
 import { downloadAsJpeg, downloadAsPdf } from './utils/exportInvoice'
 import { formatCurrency } from './utils/invoiceNumber'
 import { invoiceTypeMeta } from './utils/invoiceTypes'
+import { invoiceEntityCode } from './utils/entities'
+import { entityFilterOptions, groupInvoicesByMonth } from './utils/invoiceHistory'
 
 const CANVAS_ID = 'invoice-canvas'
 
@@ -42,9 +44,45 @@ export default function App() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [toast, setToast] = useState('')
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [entityFilter, setEntityFilter] = useState('all') // billing-entity code, or 'all'
+  const [collapsedMonths, setCollapsedMonths] = useState(() => new Set()) // month keys
   const [previewScale, setPreviewScale] = useState(1)
   const scrollRef = useRef(null)
   const previewWrapRef = useRef(null)
+  const historyRef = useRef(null)
+
+  // Sidebar history: which entities can be filtered on, and the month buckets
+  // for the current filter.
+  const entityFilters = useMemo(
+    () => entityFilterOptions(invoiceList, entities),
+    [invoiceList, entities]
+  )
+  const monthGroups = useMemo(
+    () => groupInvoicesByMonth(invoiceList, entityFilter),
+    [invoiceList, entityFilter]
+  )
+
+  const toggleMonth = (key) => {
+    setCollapsedMonths(prev => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }
+
+  // Changing the filter swaps in a different set of months, so an inherited
+  // scroll offset would drop the user into the middle of the new list.
+  useEffect(() => {
+    historyRef.current?.scrollTo({ top: 0 })
+  }, [entityFilter])
+
+  // Drop a filter whose entity no longer has any invoices (its last one was
+  // deleted), so the history can't get stuck showing an empty list.
+  useEffect(() => {
+    if (entityFilter === 'all') return
+    if (!entityFilters.some(o => o.code === entityFilter)) setEntityFilter('all')
+  }, [entityFilters, entityFilter])
 
   // Dynamically scale the 794px invoice canvas so it fits the viewport on mobile.
   useEffect(() => {
@@ -172,9 +210,9 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 md:flex" style={{ fontFamily: 'Manrope, sans-serif' }}>
+    <div className="h-screen overflow-hidden bg-gray-50 flex flex-col md:flex-row" style={{ fontFamily: 'Manrope, sans-serif' }}>
       {/* ── Mobile top bar ── */}
-      <header className="md:hidden sticky top-0 z-30 flex items-center justify-between bg-white border-b border-gray-100 px-4 h-14">
+      <header className="md:hidden shrink-0 z-30 flex items-center justify-between bg-white border-b border-gray-100 px-4 h-14">
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 rounded-full bg-[#EDEA00] flex items-center justify-center">
             <Receipt size={14} weight="bold" className="text-gray-900" />
@@ -200,12 +238,12 @@ export default function App() {
 
       {/* ── Sidebar ── */}
       <aside
-        className={`fixed md:static inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-100 flex flex-col min-h-screen transform transition-transform duration-200 ease-out ${
+        className={`fixed md:static inset-y-0 left-0 z-50 w-64 shrink-0 h-screen bg-white border-r border-gray-100 flex flex-col overflow-hidden transform transition-transform duration-200 ease-out ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         } md:translate-x-0`}
       >
         {/* Brand */}
-        <div className="px-5 py-5 border-b border-gray-100 flex items-center justify-between">
+        <div className="shrink-0 px-5 py-5 border-b border-gray-100 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-full bg-[#EDEA00] flex items-center justify-center">
               <Receipt size={14} weight="bold" className="text-gray-900" />
@@ -222,7 +260,7 @@ export default function App() {
         </div>
 
         {/* Nav */}
-        <div className="px-3 py-4 space-y-1">
+        <div className="shrink-0 px-3 py-4 space-y-1">
           <button
             onClick={() => { setEditingInvoice(null); go('create') }}
             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
@@ -261,36 +299,109 @@ export default function App() {
           </button>
         </div>
 
-        {/* Invoice list */}
-        <div className="flex-1 overflow-y-auto px-3 pb-4">
-          {loadingList ? (
-            <div className="flex justify-center pt-6">
-              <Spinner size={18} className="text-gray-300 animate-spin" />
-            </div>
-          ) : invoiceList.length === 0 ? (
-            <p className="text-xs text-gray-400 text-center pt-6 px-4">No invoices yet. Create your first one!</p>
-          ) : (
-            <div className="space-y-1">
-              <p className="text-xs text-gray-400 font-medium px-1 mb-2 uppercase tracking-wider">History</p>
-              {[...invoiceList].reverse().map(inv => (
+        {/* History — the only part of the sidebar that scrolls */}
+        <div className="flex-1 min-h-0 flex flex-col border-t border-gray-100">
+          <div className="shrink-0 px-4 pt-4 pb-2">
+            <p className="text-xs text-gray-400 font-medium uppercase tracking-wider">History</p>
+            {/* Billing-entity filter — hidden when there is only one entity to
+                choose from, since a lone chip filters nothing. */}
+            {entityFilters.length > 1 && (
+              <div className="flex flex-wrap gap-1 mt-2.5">
                 <button
-                  key={inv.id}
-                  onClick={() => { handleSelectInvoice(inv.id); setSidebarOpen(false) }}
-                  className={`w-full text-left px-3 py-2.5 rounded-xl transition-colors ${
-                    selectedInvoice?.id === inv.id
+                  onClick={() => setEntityFilter('all')}
+                  className={`px-2 py-1 rounded-lg text-[11px] font-semibold transition-colors ${
+                    entityFilter === 'all'
                       ? 'bg-gray-900 text-white'
-                      : 'hover:bg-gray-50 text-gray-700'
+                      : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
                   }`}
                 >
-                  <div className="text-xs font-mono font-semibold">#{inv.id}</div>
-                  <div className="text-xs mt-0.5 opacity-70 truncate">{inv.clientName}</div>
-                  <div className="text-xs mt-0.5 font-semibold opacity-90">
-                    ₹{formatCurrency(inv.total)}
-                  </div>
+                  All
                 </button>
-              ))}
-            </div>
-          )}
+                {entityFilters.map(opt => (
+                  <button
+                    key={opt.code}
+                    onClick={() => setEntityFilter(opt.code)}
+                    title={`${opt.name} — ${opt.count} invoice${opt.count === 1 ? '' : 's'}`}
+                    className={`px-2 py-1 rounded-lg text-[11px] font-semibold transition-colors ${
+                      entityFilter === opt.code
+                        ? 'bg-gray-900 text-white'
+                        : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                    }`}
+                  >
+                    {opt.code}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div ref={historyRef} className="flex-1 min-h-0 overflow-y-auto px-3 pb-4">
+            {loadingList ? (
+              <div className="flex justify-center pt-6">
+                <Spinner size={18} className="text-gray-300 animate-spin" />
+              </div>
+            ) : invoiceList.length === 0 ? (
+              <p className="text-xs text-gray-400 text-center pt-6 px-4">No invoices yet. Create your first one!</p>
+            ) : monthGroups.length === 0 ? (
+              <p className="text-xs text-gray-400 text-center pt-6 px-4">No invoices billed from this entity yet.</p>
+            ) : (
+              monthGroups.map(group => (
+                <div key={group.key} className="mb-3">
+                  <div className="sticky top-0 z-10 -mx-3 px-2 bg-white">
+                    <button
+                      onClick={() => toggleMonth(group.key)}
+                      aria-expanded={!collapsedMonths.has(group.key)}
+                      className="w-full flex items-center justify-between gap-2 px-2 py-1.5 rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                      <span className="flex items-center gap-1.5 min-w-0">
+                        <CaretDown
+                          size={11}
+                          weight="bold"
+                          className={`shrink-0 text-gray-400 transition-transform ${
+                            collapsedMonths.has(group.key) ? '-rotate-90' : ''
+                          }`}
+                        />
+                        <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 truncate">
+                          {group.label}
+                        </span>
+                      </span>
+                      <span className="text-[11px] font-medium text-gray-300">{group.invoices.length}</span>
+                    </button>
+                  </div>
+                  <div className={`space-y-1 mt-1 ${collapsedMonths.has(group.key) ? 'hidden' : ''}`}>
+                    {group.invoices.map(inv => (
+                      <button
+                        key={inv.id}
+                        onClick={() => { handleSelectInvoice(inv.id); setSidebarOpen(false) }}
+                        className={`w-full text-left px-3 py-2.5 rounded-xl transition-colors ${
+                          selectedInvoice?.id === inv.id
+                            ? 'bg-gray-900 text-white'
+                            : 'hover:bg-gray-50 text-gray-700'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-xs font-mono font-semibold truncate">#{inv.id}</span>
+                          {entityFilters.length > 1 && entityFilter === 'all' && (
+                            <span className={`shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded ${
+                              selectedInvoice?.id === inv.id
+                                ? 'bg-white/20 text-white'
+                                : 'bg-gray-100 text-gray-500'
+                            }`}>
+                              {invoiceEntityCode(inv)}
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-xs mt-0.5 opacity-70 truncate">{inv.clientName}</div>
+                        <div className="text-xs mt-0.5 font-semibold opacity-90">
+                          ₹{formatCurrency(inv.total)}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </div>
       </aside>
 
@@ -298,7 +409,7 @@ export default function App() {
       <main ref={scrollRef} className="flex-1 overflow-y-auto min-w-0">
         {/* Home / empty state */}
         {mode === 'home' && (
-          <div className="flex flex-col items-center justify-center h-full min-h-screen text-center px-8">
+          <div className="flex flex-col items-center justify-center h-full text-center px-8 py-16">
             <div className="w-16 h-16 rounded-2xl bg-[#EDEA00] flex items-center justify-center mb-4">
               <Receipt size={32} weight="bold" className="text-gray-900" />
             </div>
